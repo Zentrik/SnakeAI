@@ -8,50 +8,102 @@ class game:
         self.width = w
         self.height = h
         self.display = pygame.display.set_mode((self.width, self.height))
-        self.clock = pygame.time.Clock()
+        self.stop = 1
         
+        self.distance = []
         self.input = np.zeros(5) #4 element list input layer, 1 is is it clear foward, 2 is clear to the left, 3 clear to she right, 4 is apple forward/back, 5 is apple right/left
         self.hiddenLayer = np.zeros(5) #5 element list hidden Layer
         self.output = np.zeros(3) # 3 element list node output layer, forward, left, right
-        self.weight = np.random.rand(len(self.hiddenLayer), len(self.input)) #a weight per hidden layer node for each input
-        self.weight2 = np.random.rand(len(self.output), len(self.hiddenLayer))
         
-        self.reward = 0 #how many apples eaten
+        self.solutionsPerPopulation = 100
+        self.parents = 20
 
-        self.snake_head = [2 * self.width/25, 0]    
-        self.snake_position = [[2 * self.width/25, 0],[self.width/25,0],[0, 0]] 
-        self.apple_position = [np.random.randint(25) * self.width/25, np.random.randint(25) * self.height/25]
-        self.move = np.array([[self.width/25], [-self.height/25]])
-        self.moving = np.array([[1],[0]]) #y,x
+        self.reward = np.zeros(self.solutionsPerPopulation) #how many apples eaten and steps taken towards apple
+        self.weight = np.random.rand(self.solutionsPerPopulation, len(self.hiddenLayer), len(self.input)) #a weight per hidden layer node for each input
+        self.weight2 = np.random.rand(self.solutionsPerPopulation, len(self.output), len(self.hiddenLayer))
+        
+        self.genes = self.weight[0].size + self.weight2[0].size #one gene per weight
 
         pygame.init()
 
     def play(self):
-        self.display.fill((200,200,200))
-        pygame.draw.rect(self.display, (0,0,255) ,(self.apple_position[0], self.apple_position[1], self.width/25, self.height/25))
-        
-        for position in self.snake_position:
-            pygame.draw.rect(self.display,(255,0,0),(position[0],position[1],self.width/25, self.height/25))
-        pygame.display.update()
-        while True:
-            self.update()
-            self.button_press()
+        while np.max(self.reward) < 10000:
+            for n in range(self.solutionsPerPopulation):
+                self.snake_head = [2 * self.width/25, 0]    
+                self.snake_position = [[2 * self.width/25, 0],[self.width/25,0],[0, 0]] 
+                self.apple_position = [np.random.randint(25) * self.width/25, np.random.randint(25) * self.height/25]
+                self.move = np.array([[self.width/25], [-self.height/25]])
+                self.moving = np.array([[1],[0]]) #y,x
+                self.alive = 1
+
+                while self.reward[n] > -500 and self.alive and self.stop:
+                    self.button_press()
+                    self.update(n)
+            
+            parents = np.argpartition(self.reward, -20)[-20:]
+            print(np.max(self.reward))
+
+            weight3 = np.array([])
+            weight4 = np.array([])
+            #parentsplit = np.array([])
+            #parentsplitweight2 = np.array([])
+            for p in range(self.parents):
+                #np.append(parentsplit, np.array_split(self.weight[parents[p]],2), axis = 0)
+                #np.append(parentsplitweight2, np.array_split(self.weight2[parents[p]],2), axis = 0)
+                np.append(weight3, self.weight[parents[p]], 0)
+                np.append(weight4, self.weight2[parents[p]], 0)
+            
+            self.weight = weight3
+            self.weight2 = weight4
+            
+            for n in range(0, 20, 2):
+                p = np.array_split(self.weight[parents[n]],2)
+                p2 = np.array_split(self.weight2[parents[n]],2)
+
+                p3= np.array_split(self.weight[parents[n+1]],2)
+                p4 = np.array_split(self.weight2[parents[n+1]],2)
+
+                np.append(self.weight, np.append(p[0], p3[1]), axis = 0)
+                np.append(self.weight2, np.append(p2[0], p4[1]), axis = 0)
+
+                np.append(self.weight, np.append(p[0], p3[1]), axis = 0)
+                np.append(self.weight2, np.append(p4[0], p2[1]), axis = 0)
+
+                np.append(self.weight, np.append(p3[0], p[1]), axis = 0)
+                np.append(self.weight2, np.append(p2[0], p4[1]), axis = 0)
+
+                np.append(self.weight, np.append(p3[0], p[1]), axis = 0)
+                np.append(self.weight2, np.append(p4[0], p2[1]), axis = 0)
+            
+            for n in range(self.solutionsPerPopulation - self.weight.shape[0]):
+                r = np.random.randint(self.weight.shape[0])
+                np.append(self.weight, self.weight[r], 0)
+                np.append(self.weight2, self.weight2[r], 0)
+                self.weight[-1][np.random.randint(len(self.hiddenLayer))][np.random.randint(len(self.input))] = np.random.random()
+                self.weight2[-1][np.random.randint(len(self.output))][np.random.randint(len(self.hiddenLayer))] = np.random.random()
+
+        print(self.weight[np.argpartition(self.reward, -1)[-1:][0]], self.weight2[np.argpartition(self.reward, -1)[-1:][0]])
+
     
-    def update(self):
+    def update(self, solution):
+        if not self.alive: #if game quite by button press return and end while loop
+            return 
+
         x = self.snake_position[0][0] == self.apple_position[0] #if snake top right is equal to apple top right
         y = self.snake_position[0][1] == self.apple_position[1] #if snake top lett is equal to apple top left
 
         if x and y : # is apple eaten
             self.apple_position = [np.random.randint(25) * self.width/25, np.random.randint(25) * self.height/25] #respawn apple
-            self.reward += 1
+            self.reward[solution] += 100
         else:
             self.snake_position.pop() #move snake  
 
-        self.NeuralNet() #get input from neural net
+        self.NeuralNet(solution) #get input from neural net
 
         self.snake_position.insert(0,list(self.snake_head)) # move snake
         if self.snake_head[0]>self.width or self.snake_head[0]<0 or self.snake_head[1]>self.height or self.snake_head[1]<0 or self.snake_position[0] in self.snake_position[1:]: #if collision
-            quit()
+            self.alive = 0
+            return
 
         self.display.fill((200,200,200)) #reset display
         pygame.draw.rect(self.display, (0,0,255) ,(self.apple_position[0], self.apple_position[1], self.width/25, self.height/25)) #draw apple
@@ -61,7 +113,7 @@ class game:
 
         pygame.display.update() #update display  
 
-    def NeuralNet(self):
+    def NeuralNet(self, solution):
         snake_head = np.array([[self.snake_head[0]],[self.snake_head[1]]])
         f = snake_head + self.move * self.moving # snake head after moving forward
         l = snake_head + self.move * (np.matmul(np.array([[0, -1],[1, 0]]), self.moving)) # snake head after moving leftwards
@@ -70,6 +122,7 @@ class game:
         
         apple_position = np.array([[self.apple_position[0]],[self.apple_position[1]]])
         distance = apple_position - snake_head # distance between apple and snake
+        self.distance = [distance[0] / self.width, distance[1] / self.height]
 
         if np.array_equal(self.moving, np.array([[0],[-1]])): # if moving down
             distance = np.matmul(np.array([[-1, 0],[0, -1]]), distance)
@@ -93,9 +146,9 @@ class game:
             self.input[2] = 1
 
         for i in range(len(self.hiddenLayer)):
-             self.hiddenLayer[i] = self.sigmoid(np.dot(self.input, self.weight[i])) 
+             self.hiddenLayer[i] = self.sigmoid(np.dot(self.input, self.weight[solution][i])) 
         for i in range(len(self.output)):
-            self.output[i] = self.sigmoid(np.dot(self.hiddenLayer, self.weight2[i])) 
+            self.output[i] = self.sigmoid(np.dot(self.hiddenLayer, self.weight2[solution][i])) 
         
         if abs(self.output[2]) > abs(self.output[1]):
             if abs(self.output[2]) > abs(self.output[0]):
@@ -106,6 +159,15 @@ class game:
         m = self.move * self.moving
         self.snake_head[0] += m[0][0]
         self.snake_head[1] += m[1][0]
+
+        snake_head = np.array([[self.snake_head[0]],[self.snake_head[1]]])
+        apple_position = np.array([[self.apple_position[0]],[self.apple_position[1]]])
+        distance = apple_position - snake_head # distance between apple and snake
+        #occurs after first move
+        if abs(distance[0] / self.width) < abs(self.distance[0]) or abs(distance[1] / self.height) < abs(self.distance[1]): #if got closer to apple globally
+            self.reward[solution] += 1
+        else:
+            self.reward[solution] -= 2
     
     def sigmoid(self, x):
         return (1 / (1 + np.exp(-1 * x)))
@@ -113,7 +175,8 @@ class game:
     def button_press(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                quit()
+                self.stop = 0
+                return
             '''elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT and self.move[0] != self.width/25:
                     self.move = [-self.width/25,0]
@@ -126,5 +189,3 @@ class game:
 
 snake = game(500,500)
 snake.play()
-
-
