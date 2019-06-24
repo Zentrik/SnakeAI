@@ -15,7 +15,7 @@ class game:
         self.hiddenLayer = np.zeros(5) #5 element list hidden Layer
         self.output = np.zeros(3) # 3 element list node output layer, forward, left, right
         
-        self.solutionsPerPopulation = 100
+        self.solutionsPerPopulation = 2000
         self.parents = 20
 
         self.reward = np.zeros(self.solutionsPerPopulation) #how many apples eaten and steps taken towards apple
@@ -36,49 +36,52 @@ class game:
                 self.moving = np.array([[1],[0]]) #y,x
                 self.alive = 1
 
-                while self.reward[n] > -500 and self.alive and self.stop:
+                while self.reward[n] > -100 and self.alive and self.stop:
                     self.button_press()
                     self.update(n)
             
             parents = np.argpartition(self.reward, -20)[-20:]
             print(np.max(self.reward))
 
-            weight3 = np.array([])
-            weight4 = np.array([])
-            #parentsplit = np.array([])
-            #parentsplitweight2 = np.array([])
+            weight3 = np.empty([self.parents, len(self.hiddenLayer), len(self.input)])
+            weight4 = np.empty([self.parents, len(self.output), len(self.hiddenLayer)])
+
             for p in range(self.parents):
-                #np.append(parentsplit, np.array_split(self.weight[parents[p]],2), axis = 0)
-                #np.append(parentsplitweight2, np.array_split(self.weight2[parents[p]],2), axis = 0)
-                np.append(weight3, self.weight[parents[p]], 0)
-                np.append(weight4, self.weight2[parents[p]], 0)
+
+                weight3[p] = self.weight[parents[p]]
+                weight4[p] = self.weight2[parents[p]]
             
             self.weight = weight3
             self.weight2 = weight4
             
             for n in range(0, 20, 2):
-                p = np.array_split(self.weight[parents[n]],2)
-                p2 = np.array_split(self.weight2[parents[n]],2)
+                p = np.array_split(self.weight[n],2)
+                p2 = np.array_split(self.weight2[n],2)
 
-                p3= np.array_split(self.weight[parents[n+1]],2)
-                p4 = np.array_split(self.weight2[parents[n+1]],2)
+                p3= np.array_split(self.weight[n+1],2)
+                p4 = np.array_split(self.weight2[n+1],2)
 
-                np.append(self.weight, np.append(p[0], p3[1]), axis = 0)
-                np.append(self.weight2, np.append(p2[0], p4[1]), axis = 0)
+                pp3 = np.append(p[0], p3[1], 0).reshape([1,len(self.hiddenLayer), len(self.input)]) 
+                p3p = np.append(p3[0], p[1], 0).reshape([1,len(self.hiddenLayer), len(self.input)])
+                p4p2 = np.append(p4[0], p2[1], 0).reshape([1,len(self.output), len(self.hiddenLayer)])
+                p2p4 = np.append(p2[0], p4[1], 0).reshape([1,len(self.output), len(self.hiddenLayer)])     
 
-                np.append(self.weight, np.append(p[0], p3[1]), axis = 0)
-                np.append(self.weight2, np.append(p4[0], p2[1]), axis = 0)
+                self.weight = np.append(self.weight, pp3, axis = 0)
+                self.weight2 = np.append(self.weight2, p2p4, axis = 0)
 
-                np.append(self.weight, np.append(p3[0], p[1]), axis = 0)
-                np.append(self.weight2, np.append(p2[0], p4[1]), axis = 0)
+                self.weight = np.append(self.weight, pp3, axis = 0)
+                self.weight2 = np.append(self.weight2, p4p2, axis = 0)
 
-                np.append(self.weight, np.append(p3[0], p[1]), axis = 0)
-                np.append(self.weight2, np.append(p4[0], p2[1]), axis = 0)
-            
+                self.weight = np.append(self.weight, p3p, axis = 0)
+                self.weight2 = np.append(self.weight2, p2p4, axis = 0)
+
+                self.weight = np.append(self.weight, p3p, axis = 0)
+                self.weight2 = np.append(self.weight2, p4p2, axis = 0)
+        
             for n in range(self.solutionsPerPopulation - self.weight.shape[0]):
                 r = np.random.randint(self.weight.shape[0])
-                np.append(self.weight, self.weight[r], 0)
-                np.append(self.weight2, self.weight2[r], 0)
+                self.weight = np.append(self.weight, self.weight[r].reshape([1,len(self.hiddenLayer), len(self.input)]) , 0)
+                self.weight2 = np.append(self.weight2, self.weight2[r].reshape([1,len(self.output), len(self.hiddenLayer)]), 0)
                 self.weight[-1][np.random.randint(len(self.hiddenLayer))][np.random.randint(len(self.input))] = np.random.random()
                 self.weight2[-1][np.random.randint(len(self.output))][np.random.randint(len(self.hiddenLayer))] = np.random.random()
 
@@ -94,7 +97,7 @@ class game:
 
         if x and y : # is apple eaten
             self.apple_position = [np.random.randint(25) * self.width/25, np.random.randint(25) * self.height/25] #respawn apple
-            self.reward[solution] += 100
+            self.reward[solution] += 1000
         else:
             self.snake_position.pop() #move snake  
 
@@ -109,9 +112,9 @@ class game:
         pygame.draw.rect(self.display, (0,0,255) ,(self.apple_position[0], self.apple_position[1], self.width/25, self.height/25)) #draw apple
         
         for position in self.snake_position: #draw snake
-            pygame.draw.rect(self.display,(255,0,0),(position[0],position[1],self.width/25, self.height/25))
+            pygame.draw.rect(self.display,(255,0, 0),(position[0],position[1],self.width/25, self.height/25))
 
-        pygame.display.update() #update display  
+        pygame.display.update() #update display 
 
     def NeuralNet(self, solution):
         snake_head = np.array([[self.snake_head[0]],[self.snake_head[1]]])
@@ -165,9 +168,9 @@ class game:
         distance = apple_position - snake_head # distance between apple and snake
         #occurs after first move
         if abs(distance[0] / self.width) < abs(self.distance[0]) or abs(distance[1] / self.height) < abs(self.distance[1]): #if got closer to apple globally
-            self.reward[solution] += 1
+            self.reward[solution] += 0.5
         else:
-            self.reward[solution] -= 2
+            self.reward[solution] -= 3
     
     def sigmoid(self, x):
         return (1 / (1 + np.exp(-1 * x)))
@@ -187,5 +190,5 @@ class game:
                 elif event.key == pygame.K_DOWN and self.move[1] != -self.height/25:
                     self.move = [0,self.height/25]'''
 
-snake = game(500,500)
+snake = game(1000,1000)
 snake.play()
