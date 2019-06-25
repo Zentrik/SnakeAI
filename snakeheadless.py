@@ -23,9 +23,7 @@ class game:
             for n in range(self.solutionsPerPopulation):
                 self.snake_head = [2 * self.width/25, self.height/2]    
                 self.snake_position = [[2 * self.width/25, self.height/2],[self.width/25,self.height/2],[0, self.height/2]] 
-                #self.snake_head = [2 * self.width/25, 0]    
-                #self.snake_position = [[2 * self.width/25, 0],[self.width/25,0],[0, 0]]
-                self.apple_position = [np.random.randint(25) * self.width/25, np.random.randint(25) * self.height/25]
+                self.apple_position = [np.random.randint(5, 25) * self.width/25, np.random.randint(25) * self.height/25]
                 self.move = np.array([[self.width/25], [-self.height/25]])
                 self.moving = np.array([[1],[0]]) #y,x
                 self.alive = 1
@@ -60,26 +58,28 @@ class game:
             for i in range(self.solutionsPerPopulation): #loop n times, where n is number of solutions, i.e. mutate every solution/chromosome
                 self.weights[i, np.random.randint(self.numberOfWeights)] += np.random.uniform(-1,1) # add random value to random weight for every solution
 
-        np.save("bestSolutionGlobal.npy", self.weights[np.argpartition(self.reward, -1)[-1:][0]])
+        np.save("bestSolutionheadless.npy", self.weights[np.argpartition(self.reward, -1)[-1:][0]])
     
     def update(self, solution):
         self.NeuralNet(solution) #get input from neural net
 
         self.snake_position.insert(0,list(self.snake_head)) # move snake
 
-        if self.snake_head[0]>self.width or self.snake_head[0]<0 or self.snake_head[1]>self.height or self.snake_head[1]<0 or self.snake_position[0] in self.snake_position[1:]: #if collision
+        if self.snake_head == self.apple_position: # if apple eaten
+            self.apple_position = [np.random.randint(25) * self.width/25, np.random.randint(25) * self.height/25] #respawn apple
+            self.reward[solution] += 1000
+        else:
+            self.snake_position.pop() #move snake 
+
+        if self.snake_head[0] >= self.width or self.snake_head[0] < 0 or self.snake_head[1] >= self.height or self.snake_head[1] < 0 or self.snake_position[0] in self.snake_position[1:]: #if collision
             self.alive = 0
 
     def NeuralNet(self, solution):
         distance = self.apple_position[0] - self.snake_head[0], self.apple_position[1] - self.snake_head[1] # distance between apple and snake
 
-        self.input[4:6] = [distance[0] / self.width, distance[1] / self.height]
-
-        #lateral distance of apple from snake divided by screen width, positive if apple to the right
+        self.input[4:6] = [distance[0] / self.width, distance[1] / self.height] #lateral distance of apple from snake divided by screen width, positive if apple to the right
         #vertical distance of apple from snake divided by screen height, positive is apple below
 
-        #if snake_head[0] in self.snake_position[1:][0]: # if x is the same find vertical distance between snake parts
-        #    self.input(1) = self.snake_head[0] - self.snake_position.index(snake_head[0])
         self.input[2] = self.snake_head[1] # top
         self.input[3] = self.height - self.snake_head[1] + self.width/25 #bottom
         self.input[1] = self.snake_head[0] #left
@@ -105,10 +105,8 @@ class game:
         self.input[1] = self.input[1] / self.width
         self.input[0] = self.input[0] / self.width
 
-        for i in range(len(self.hiddenLayer)):
-            self.hiddenLayer[i] = self.sigmoid(np.dot(self.input, self.weights[solution][len(self.input)*i:len(self.input)*(i+1)])) 
-        for i in range(len(self.output)):
-            self.output[i] = self.sigmoid(np.dot(self.hiddenLayer, self.weights[solution][len(self.input)*len(self.hiddenLayer)+i*len(self.hiddenLayer):len(self.input)*len(self.hiddenLayer)+(i+1)*len(self.hiddenLayer)])) 
+        self.hiddenLayer = self.leaky_relu(np.matmul(self.weights[solution, :len(self.hiddenLayer) * len(self.input)].reshape([len(self.hiddenLayer), len(self.input)]), self.input)) # matrix multilication of weights matrix (a x number of weights) by input list ax1 matrix
+        self.output = np.tanh(np.matmul(self.weights[solution][len(self.hiddenLayer) * len(self.input):].reshape([len(self.output), len(self.hiddenLayer)]), self.hiddenLayer)) 
 
         movements = {0: [[1],[0]], 1: [[-1],[0]], 2: [[0],[-1]], 3: [[0],[1]]}
         self.moving = movements[np.argmax(self.output)] #fix so that it checks for duplicate value
@@ -124,9 +122,9 @@ class game:
             self.reward[solution] += 1
         else:
             self.reward[solution] -= 1.5
-    
-    def sigmoid(self, x):
-        return (1 / (1 + np.exp(-1 * x)))
 
-snake = game(500,500, 1000, 10)
+    def leaky_relu(self, x):
+        return np.maximum(0.1 * x, x)
+
+snake = game(500,500, 100, 20)
 snake.play()
