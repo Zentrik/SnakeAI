@@ -15,7 +15,7 @@ class game:
         self.hiddenLayer = np.zeros(5) #5 element list hidden Layer
         self.output = np.zeros(3) # 3 element list node output layer, forward, left, right
         
-        self.solutionsPerPopulation = 2000
+        self.solutionsPerPopulation = 100
         self.parents = 20
 
         self.reward = np.zeros(self.solutionsPerPopulation) #how many apples eaten and steps taken towards apple
@@ -37,7 +37,7 @@ class game:
                 self.moving = np.array([[1],[0]]) #y,x
                 self.alive = 1
 
-                while self.reward[n] > -100 and self.alive and self.stop:
+                while self.reward[n] > -250 and self.alive and self.stop:
                     self.button_press()
                     self.update(n)
 
@@ -51,16 +51,17 @@ class game:
 
             for solution in range(self.solutionsPerPopulation): #make desired number of solutions
                 while True:
-                    p1 = parentsIndex[np.random.randint(self.parents)] #random parent index
-                    p2 = parentsIndex[np.random.randint(self.parents)]
+                    p1 = np.random.randint(self.parents) #random parent index to obtain elements from parentsWeights list
+                    p2 = np.random.randint(self.parents)
                     # produce offspring from two parents if they are different
                     if p1 != p2: #if two different parents
                         for weight in range(self.numberOfWeights): #loop for every weight, loop n times where n is equal to number of weights per solution/parent
-                            if np.random.random < 0.5:
+                            if np.random.random() < 0.5:
                                 self.weights[solution, weight] = parentsWeights[p1, weight]
                             else:
                                 self.weights[solution, weight] = parentsWeights[p2, weight]
-            
+                        break #when for loop finished, i.e. every weight has been assigned
+
             for i in range(self.solutionsPerPopulation): #loop n times, where n is number of solutions, i.e. mutate every solution/chromosome
                 self.weights[i, np.random.randint(self.numberOfWeights)] += np.random.uniform(-1,1) # add random value to random weight for every solution
 
@@ -200,7 +201,6 @@ class game:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.stop = 0
-                return
             '''elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT and self.move[0] != self.width/25:
                     self.move = [-self.width/25,0]
@@ -211,5 +211,5 @@ class game:
                 elif event.key == pygame.K_DOWN and self.move[1] != -self.height/25:
                     self.move = [0,self.height/25]'''
 
-snake = game(1000,1000)
+snake = game(500,500)
 snake.play()
