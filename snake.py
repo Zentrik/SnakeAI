@@ -3,7 +3,7 @@ from pygame.locals import *
 import numpy as np
 
 class game:
-    def __init__(self, w, h):
+    def __init__(self, w, h, sols, parents):
         self.width = w
         self.height = h
         self.display = pygame.display.set_mode((self.width, self.height))
@@ -14,15 +14,15 @@ class game:
         self.hiddenLayer = np.zeros(5) #5 element list hidden Layer
         self.output = np.zeros(3) # 3 element list node output layer, forward, left, right
         
-        self.solutionsPerPopulation = 100
-        self.parents = 20
+        self.solutionsPerPopulation = sols
+        self.parents = parents
 
         self.reward = np.zeros(self.solutionsPerPopulation) #how many apples eaten and steps taken towards apple,
         #self.weight = np.random.rand(self.solutionsPerPopulation, len(self.hiddenLayer), len(self.input)) #a weight per hidden layer node for each input
         #self.weight2 = np.random.rand(self.solutionsPerPopulation, len(self.output), len(self.hiddenLayer))
 
         self.numberOfWeights = len(self.hiddenLayer) * (len(self.input) + len(self.output)) # per solution
-        self.weights = np.random.rand(self.solutionsPerPopulation, self.numberOfWeights)
+        self.weights = np.random.uniform(-1,1, [self.solutionsPerPopulation, self.numberOfWeights])
 
         pygame.init()
 
@@ -30,14 +30,16 @@ class game:
         while not self.stop:
             self.reward = np.zeros(self.solutionsPerPopulation) #reset reward every population
             for n in range(self.solutionsPerPopulation):
-                self.snake_head = [2 * self.width/25, 0]    
-                self.snake_position = [[2 * self.width/25, 0],[self.width/25,0],[0, 0]] 
+                self.snake_head = [2 * self.width/25, self.height/2]    
+                self.snake_position = [[2 * self.width/25, self.height/2],[self.width/25,self.height/2],[0, self.height/2]] 
+                #self.snake_head = [2 * self.width/25, 0]    
+                #self.snake_position = [[2 * self.width/25, 0],[self.width/25,0],[0, 0]]
                 self.apple_position = [np.random.randint(25) * self.width/25, np.random.randint(25) * self.height/25]
                 self.move = np.array([[self.width/25], [-self.height/25]])
                 self.moving = np.array([[1],[0]]) #y,x
                 self.alive = 1
 
-                while self.reward[n] > -250 and self.alive and not self.stop:
+                while self.reward[n] > -500 and self.alive and not self.stop:
                     self.button_press()
                     self.update(n)
 
@@ -130,6 +132,7 @@ class game:
         self.snake_position.insert(0,list(self.snake_head)) # move snake
         if self.snake_head[0]>self.width or self.snake_head[0]<0 or self.snake_head[1]>self.height or self.snake_head[1]<0 or self.snake_position[0] in self.snake_position[1:]: #if collision
             self.alive = 0
+            self.reward[solution] -= 150
             return
 
         self.display.fill((200,200,200)) #reset display
@@ -192,9 +195,9 @@ class game:
         distance = apple_position - snake_head # distance between apple and snake
         #occurs after first move
         if abs(distance[0] / self.width) < abs(self.distance[0]) or abs(distance[1] / self.height) < abs(self.distance[1]): #if got closer to apple globally
-            self.reward[solution] += 0.5
+            self.reward[solution] += 1
         else:
-            self.reward[solution] -= 3
+            self.reward[solution] -= 1.5
     
     def sigmoid(self, x):
         return (1 / (1 + np.exp(-1 * x)))
@@ -213,5 +216,5 @@ class game:
                 elif event.key == pygame.K_DOWN and self.move[1] != -self.height/25:
                     self.move = [0,self.height/25]'''
 
-snake = game(500,500)
+snake = game(500,500, 1000, 10)
 snake.play()
