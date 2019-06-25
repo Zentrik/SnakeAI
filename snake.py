@@ -1,14 +1,13 @@
 import pygame
 from pygame.locals import *
 import numpy as np
-import sys
 
 class game:
     def __init__(self, w, h):
         self.width = w
         self.height = h
         self.display = pygame.display.set_mode((self.width, self.height))
-        self.stop = 1
+        self.stop = 0
         
         self.distance = []
         self.input = np.zeros(5) #4 element list input layer, 1 is is it clear foward, 2 is clear to the left, 3 clear to she right, 4 is apple forward/back, 5 is apple right/left
@@ -18,7 +17,7 @@ class game:
         self.solutionsPerPopulation = 100
         self.parents = 20
 
-        self.reward = np.zeros(self.solutionsPerPopulation) #how many apples eaten and steps taken towards apple
+        self.reward = np.zeros(self.solutionsPerPopulation) #how many apples eaten and steps taken towards apple,
         #self.weight = np.random.rand(self.solutionsPerPopulation, len(self.hiddenLayer), len(self.input)) #a weight per hidden layer node for each input
         #self.weight2 = np.random.rand(self.solutionsPerPopulation, len(self.output), len(self.hiddenLayer))
 
@@ -28,7 +27,8 @@ class game:
         pygame.init()
 
     def play(self):
-        while np.max(self.reward) < 10000 and self.stop:
+        while not self.stop:
+            self.reward = np.zeros(self.solutionsPerPopulation) #reset reward every population
             for n in range(self.solutionsPerPopulation):
                 self.snake_head = [2 * self.width/25, 0]    
                 self.snake_position = [[2 * self.width/25, 0],[self.width/25,0],[0, 0]] 
@@ -37,9 +37,12 @@ class game:
                 self.moving = np.array([[1],[0]]) #y,x
                 self.alive = 1
 
-                while self.reward[n] > -250 and self.alive and self.stop:
+                while self.reward[n] > -250 and self.alive and not self.stop:
                     self.button_press()
                     self.update(n)
+
+            if np.max(self.reward) > 10000:
+                break
 
             parentsIndex = np.argpartition(self.reward, -self.parents)[-self.parents:] # get top 20 performing chromosomes, index of reward array
 
@@ -107,8 +110,7 @@ class game:
                 self.weight[-1][np.random.randint(len(self.hiddenLayer))][np.random.randint(len(self.input))] = np.random.random()
                 self.weight2[-1][np.random.randint(len(self.output))][np.random.randint(len(self.hiddenLayer))] = np.random.random()'''
 
-        print(self.weights[np.argpartition(self.reward, -1)[-1:][0]])
-
+        np.save("bestSolution.npy", self.weights[np.argpartition(self.reward, -1)[-1:][0]])
     
     def update(self, solution):
         if not self.alive: #if game quite by button press return and end while loop
@@ -200,7 +202,7 @@ class game:
     def button_press(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                self.stop = 0
+                self.stop = 1
             '''elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT and self.move[0] != self.width/25:
                     self.move = [-self.width/25,0]
