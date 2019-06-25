@@ -19,15 +19,16 @@ class game:
         self.parents = 20
 
         self.reward = np.zeros(self.solutionsPerPopulation) #how many apples eaten and steps taken towards apple
-        self.weight = np.random.rand(self.solutionsPerPopulation, len(self.hiddenLayer), len(self.input)) #a weight per hidden layer node for each input
-        self.weight2 = np.random.rand(self.solutionsPerPopulation, len(self.output), len(self.hiddenLayer))
-        
-        self.genes = self.weight[0].size + self.weight2[0].size #one gene per weight
+        #self.weight = np.random.rand(self.solutionsPerPopulation, len(self.hiddenLayer), len(self.input)) #a weight per hidden layer node for each input
+        #self.weight2 = np.random.rand(self.solutionsPerPopulation, len(self.output), len(self.hiddenLayer))
+
+        self.numberOfWeights = len(self.hiddenLayer) * (len(self.input) + len(self.output)) # per solution
+        self.weights = np.random.rand(self.solutionsPerPopulation, self.numberOfWeights)
 
         pygame.init()
 
     def play(self):
-        while np.max(self.reward) < 10000:
+        while np.max(self.reward) < 10000 and self.stop:
             for n in range(self.solutionsPerPopulation):
                 self.snake_head = [2 * self.width/25, 0]    
                 self.snake_position = [[2 * self.width/25, 0],[self.width/25,0],[0, 0]] 
@@ -39,11 +40,31 @@ class game:
                 while self.reward[n] > -100 and self.alive and self.stop:
                     self.button_press()
                     self.update(n)
-            
-            parents = np.argpartition(self.reward, -20)[-20:]
-            print(np.max(self.reward))
 
-            weight3 = np.empty([self.parents, len(self.hiddenLayer), len(self.input)])
+            parentsIndex = np.argpartition(self.reward, -self.parents)[-self.parents:] # get top 20 performing chromosomes, index of reward array
+
+            parentsWeights = np.empty([self.parents, self.numberOfWeights]) #create temporary array storing parent weights
+            for i in range(len(parentsIndex)):
+                parentsWeights[i] = self.weights[parentsIndex[i]] #populate temporary array with values
+
+            print(np.max(self.reward)) #print top fitness
+
+            for solution in range(self.solutionsPerPopulation): #make desired number of solutions
+                while True:
+                    p1 = parentsIndex[np.random.randint(self.parents)] #random parent index
+                    p2 = parentsIndex[np.random.randint(self.parents)]
+                    # produce offspring from two parents if they are different
+                    if p1 != p2: #if two different parents
+                        for weight in range(self.numberOfWeights): #loop for every weight, loop n times where n is equal to number of weights per solution/parent
+                            if np.random.random < 0.5:
+                                self.weights[solution, weight] = parentsWeights[p1, weight]
+                            else:
+                                self.weights[solution, weight] = parentsWeights[p2, weight]
+            
+            for i in range(self.solutionsPerPopulation): #loop n times, where n is number of solutions, i.e. mutate every solution/chromosome
+                self.weights[i, np.random.randint(self.numberOfWeights)] += np.random.uniform(-1,1) # add random value to random weight for every solution
+
+            '''weight3 = np.empty([self.parents, len(self.hiddenLayer), len(self.input)])
             weight4 = np.empty([self.parents, len(self.output), len(self.hiddenLayer)])
 
             for p in range(self.parents):
@@ -83,9 +104,9 @@ class game:
                 self.weight = np.append(self.weight, self.weight[r].reshape([1,len(self.hiddenLayer), len(self.input)]) , 0)
                 self.weight2 = np.append(self.weight2, self.weight2[r].reshape([1,len(self.output), len(self.hiddenLayer)]), 0)
                 self.weight[-1][np.random.randint(len(self.hiddenLayer))][np.random.randint(len(self.input))] = np.random.random()
-                self.weight2[-1][np.random.randint(len(self.output))][np.random.randint(len(self.hiddenLayer))] = np.random.random()
+                self.weight2[-1][np.random.randint(len(self.output))][np.random.randint(len(self.hiddenLayer))] = np.random.random()'''
 
-        print(self.weight[np.argpartition(self.reward, -1)[-1:][0]], self.weight2[np.argpartition(self.reward, -1)[-1:][0]])
+        print(self.weights[np.argpartition(self.reward, -1)[-1:][0]])
 
     
     def update(self, solution):
@@ -149,9 +170,9 @@ class game:
             self.input[2] = 1
 
         for i in range(len(self.hiddenLayer)):
-             self.hiddenLayer[i] = self.sigmoid(np.dot(self.input, self.weight[solution][i])) 
+            self.hiddenLayer[i] = self.sigmoid(np.dot(self.input, self.weights[solution][len(self.input)*i:len(self.input)*(i+1)])) 
         for i in range(len(self.output)):
-            self.output[i] = self.sigmoid(np.dot(self.hiddenLayer, self.weight2[solution][i])) 
+            self.output[i] = self.sigmoid(np.dot(self.hiddenLayer, self.weights[solution][len(self.input)*len(self.hiddenLayer)+i*len(self.hiddenLayer):len(self.input)*len(self.hiddenLayer)+(i+1)*len(self.hiddenLayer)])) 
         
         if abs(self.output[2]) > abs(self.output[1]):
             if abs(self.output[2]) > abs(self.output[0]):
