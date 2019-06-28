@@ -1,4 +1,5 @@
 import numpy as np
+import sys
 
 class game:
     def __init__(self, sols, parents,f):
@@ -34,36 +35,7 @@ class game:
                 while self.reward[n] > -100 and self.alive:
                     self.update(n)
 
-            if np.max(self.reward) > self.desiredFitness:
-                break
-            np.save("bestSolution.npy", self.weights[np.argpartition(self.reward, -1)[-1:][0]])
-
-            parentsIndex = np.argpartition(self.reward, -self.parents)[-self.parents:] # get top 20 performing chromosomes, index of reward array
-
-            parentsWeights = np.empty([self.parents, self.numberOfWeights]) #create temporary array storing parent weights
-            for i in range(len(parentsIndex)):
-                parentsWeights[i] = self.weights[parentsIndex[i]] #populate temporary array with values
-
-            print(np.max(self.reward)) #print top fitness
-
-            for solution in range(self.solutionsPerPopulation): #make desired number of solutions
-                while True:
-                    p1 = np.random.randint(self.parents) #random parent index to obtain elements from parentsWeights list
-                    p2 = np.random.randint(self.parents)
-                    # produce offspring from two parents if they are different
-                    if p1 != p2: #if two different parents
-                        for weight in range(self.numberOfWeights): #loop for every weight, loop n times where n is equal to number of weights per solution/parent
-                            if np.random.random() < 0.5:
-                                self.weights[solution, weight] = parentsWeights[p1, weight]
-                            else:
-                                self.weights[solution, weight] = parentsWeights[p2, weight]
-                        break #when for loop finished, i.e. every weight has been assigned
-
-            for i in range(self.solutionsPerPopulation): #loop n times, where n is number of solutions, i.e. mutate every solution/chromosome
-                self.weights[i, np.random.randint(self.numberOfWeights)] += np.random.uniform(-1,1) # add random value to random weight for every solution
-
-        if np.max(self.reward) > self.desiredFitness:
-            self.save()
+            self.evaluate()
     
     def update(self, solution):
         if self.snake_head == self.apple_position: # if apple eaten
@@ -130,12 +102,43 @@ class game:
     def relu(self, x):
         return x * (x > 0)
 
-    def sigmoid(self, x):                                        
-        return 1 / (1 + np.exp(-x))
-
     def save(self):
         np.save("FinalSolution.npy", self.weights[np.argpartition(self.reward, -1)[-1:][0]])
         print("Finished!\n", self.weights[np.argpartition(self.reward, -1)[-1:][0]])
 
-snake = game(500, 100, 20000)
+    def evaluate(self):
+        if np.max(self.reward) > self.desiredFitness: #if desired fitness acheived: save weights; exit program
+                self.save()
+                sys.exit()
+
+        np.save("bestSolution.npy", self.weights[np.argpartition(self.reward, -1)[-1:][0]])
+
+        parentsIndex = np.argpartition(self.reward, -self.parents)[-self.parents:] # get top 20 performing chromosomes, index of reward array
+
+        '''parentsWeights = np.empty([self.parents, self.numberOfWeights]) #create temporary array storing parent weights
+        
+        for i in range(self.parents):
+           parentsWeights[i] = self.weights[parentsIndex[i]] #populate temporary array with values'''
+
+        parentsWeights = self.weights[parentsIndex]
+
+        print(np.max(self.reward)) #print top fitness
+
+        for solution in range(self.solutionsPerPopulation): #make desired number of solutions
+            while True:
+                p1 = np.random.randint(self.parents) #random parent index to obtain elements from parentsWeights list
+                p2 = np.random.randint(self.parents) 
+
+                if p1 != p2: #if two different parents, produce offspring from two parents 
+                    for weight in range(self.numberOfWeights): #loop for every weight, loop n times where n is equal to number of weights per solution/parent
+                        if np.random.random() < 0.5:
+                            self.weights[solution, weight] = parentsWeights[p1, weight]
+                        else:
+                            self.weights[solution, weight] = parentsWeights[p2, weight]
+                    break #when for loop finished, i.e. every weight has been assigned
+
+        for i in range(self.solutionsPerPopulation): #loop n times, where n is number of solutions, i.e. mutate every solution/chromosome
+            self.weights[i, np.random.randint(self.numberOfWeights)] += np.random.uniform(-1,1) # add random value to random weight for every solution
+
+snake = game(50, 10, 20000)
 snake.play()
