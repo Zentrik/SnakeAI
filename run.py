@@ -4,7 +4,7 @@ import numpy as np
 import sys
 
 class game:
-    def __init__(self, width, file):
+    def __init__(self, width = 500, file = 1):
         self.width = 50
         self.display = pygame.Surface((self.width, self.width))
         self.outputDisplay = pygame.display.set_mode((int(width), int(width)))
