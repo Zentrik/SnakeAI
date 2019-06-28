@@ -19,7 +19,7 @@ class game:
             self.snake_head = [2 * self.width/25, 200]    
             self.snake_position = [[2 * self.width/25, 200],[self.width/25,200],[0, 200]] 
             self.apple_position = [np.random.randint(5, 25) * self.width/25, np.random.randint(25) * self.height/25]
-            self.moving = np.array([[1],[0]]) #y,x
+            self.moving = [1,0] #y,x
             self.alive = 1
             self.reward = 0
 
@@ -38,14 +38,15 @@ class game:
 
         pygame.display.update() #update display 
 
-        movements = {0: [[1],[0]], 1: [[-1],[0]], 2: [[0],[-1]], 3: [[0],[1]]}
+        movements = {0: [1, 0], 1: [-1,0], 2: [0, -1], 3: [0, 1]}
+        backwards = {0: [-1, 0], 1: [1,0], 2: [0, 1], 3: [0, -1]} #if coming from this direction the snake would die
+        
         a = self.buttonpress()
-        if a != 4:
+        if a != 4 and self.moving != backwards[a]:
             self.moving = movements[a]
 
-        m =  np.array([[self.width/25], [self.height/25]]) * self.moving
-        self.snake_head[0] += m[0][0]
-        self.snake_head[1] += m[1][0]
+        self.snake_head[0] += self.moving[0] * self.width / 25
+        self.snake_head[1] += self.moving[1] * self.width / 25
         
         self.snake_position.insert(0,list(self.snake_head)) # move snake
 

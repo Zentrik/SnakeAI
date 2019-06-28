@@ -11,9 +11,6 @@ class game:
         
         self.solutionsPerPopulation = sols
         self.parents = parents
-        #self.move = np.array([[self.width/25], [self.height/25]])
-
-        self.reward = np.zeros(self.solutionsPerPopulation) #how many apples eaten and steps taken towards apple,
 
         self.numberOfWeights = len(self.hiddenLayer) * (len(self.input) + len(self.output)) # per solution
 
@@ -23,13 +20,13 @@ class game:
 
     def play(self):
         while True:
-            self.reward = np.zeros(self.solutionsPerPopulation) #reset reward every population
+            self.reward = np.zeros(self.solutionsPerPopulation) #reset reward every population #how many apples eaten and steps taken towards apple,
             for n in range(self.solutionsPerPopulation):
                 self.snake_head = [2, self.width//2]    
                 self.snake_position = [[2, self.width//2],[1, self.width//2],[0, self.width//2]]  
                 self.apple_position = [np.random.randint(5,self.width), np.random.randint(self.width)] #make sure apple doesnt spawn on snake
 
-                self.moving = [1, 0] #y,x
+                self.moving = [1, 0] #x,y
                 self.alive = 1
 
                 while self.reward[n] > -100 and self.alive:
@@ -86,7 +83,10 @@ class game:
         self.output = np.matmul(self.weights[solution][len(self.hiddenLayer) * len(self.input):].reshape([len(self.output), len(self.hiddenLayer)]), self.hiddenLayer)
 
         movements = {0: [1, 0], 1: [-1,0], 2: [0, -1], 3: [0, 1]}
-        self.moving = movements[np.argmax(self.output)] #fix so that it checks for duplicate value
+        backwards = {0: [-1, 0], 1: [1,0], 2: [0, 1], 3: [0, -1]} #if coming from this direction the snake would die
+        
+        if self.moving != backwards[np.argmax(self.output)]:
+            self.moving = movements[np.argmax(self.output)] #fix so that it checks for duplicate value
         
         self.snake_head[0] += self.moving[0]
         self.snake_head[1] += self.moving[1]
@@ -140,5 +140,5 @@ class game:
         for i in range(self.solutionsPerPopulation): #loop n times, where n is number of solutions, i.e. mutate every solution/chromosome
             self.weights[i, np.random.randint(self.numberOfWeights)] += np.random.uniform(-1,1) # add random value to random weight for every solution
 
-snake = game(50, 10, 20000)
+snake = game(500, 25, 20000)
 snake.play()

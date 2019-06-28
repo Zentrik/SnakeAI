@@ -34,7 +34,7 @@ class game:
     def play(self):
         while self.reward > -150 and self.alive:
             self.update()
-            self.clock.tick(20)
+            self.clock.tick(40)
 
     def update(self):
         if self.snake_head == self.apple_position: # if apple eaten
@@ -96,7 +96,10 @@ class game:
         self.output = np.matmul(self.weights[len(self.hiddenLayer) * len(self.input):].reshape([len(self.output), len(self.hiddenLayer)]), self.hiddenLayer)
 
         movements = {0: [1, 0], 1: [-1,0], 2: [0, -1], 3: [0, 1]}
-        self.moving = movements[np.argmax(self.output)] #fix so that it checks for duplicate value
+        backwards = {0: [-1, 0], 1: [1,0], 2: [0, 1], 3: [0, -1]} #if coming from this direction the snake would die
+        
+        if self.moving != backwards[np.argmax(self.output)]:
+            self.moving = movements[np.argmax(self.output)] #fix so that it checks for duplicate value
         
         self.snake_head[0] += self.moving[0]
         self.snake_head[1] += self.moving[1]
