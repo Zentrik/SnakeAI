@@ -4,7 +4,7 @@ import numpy as np
 import sys
 
 class game:
-    def __init__(self, width = 500, file = 1):
+    def __init__(self, width = 500, file = 0):
         self.width = 50
         self.display = pygame.Surface((self.width, self.width))
         self.outputDisplay = pygame.display.set_mode((int(width), int(width)))
@@ -34,8 +34,7 @@ class game:
     def play(self):
         while self.reward > -150 and self.alive:
             self.update()
-            self.clock.tick(10)
-        #print(self.reward)
+            self.clock.tick(20)
 
     def update(self):
         if self.snake_head == self.apple_position: # if apple eaten
@@ -93,8 +92,8 @@ class game:
         self.input[1] = self.input[1] / self.width
         self.input[0] = self.input[0] / self.width
 
-        self.hiddenLayer = self.leaky_relu(np.matmul(self.weights[:len(self.hiddenLayer) * len(self.input)].reshape([len(self.hiddenLayer), len(self.input)]), self.input)) # matrix multilication of weights matrix (a x number of weights) by input list ax1 matrix
-        self.output = np.tanh(np.matmul(self.weights[len(self.hiddenLayer) * len(self.input):].reshape([len(self.output), len(self.hiddenLayer)]), self.hiddenLayer)) 
+        self.hiddenLayer = self.relu(np.matmul(self.weights[:len(self.hiddenLayer) * len(self.input)].reshape([len(self.hiddenLayer), len(self.input)]), self.input)) # matrix multilication of weights matrix (a x number of weights) by input list ax1 matrix
+        self.output = np.matmul(self.weights[len(self.hiddenLayer) * len(self.input):].reshape([len(self.output), len(self.hiddenLayer)]), self.hiddenLayer)
 
         movements = {0: [1, 0], 1: [-1,0], 2: [0, -1], 3: [0, 1]}
         self.moving = movements[np.argmax(self.output)] #fix so that it checks for duplicate value
@@ -110,8 +109,11 @@ class game:
         else:
             self.reward -= 3
 
-    def leaky_relu(self, x):
-        return np.maximum(0.1 * x, x)
+    def relu(self, x):
+        return x * (x > 0)
 
-snake = game(sys.argv[1], sys.argv[2]) #500x500px display
+if len(sys.argv) == 3:
+    snake = game(sys.argv[1], sys.argv[2]) #500x500px display
+else:
+    snake = game()
 snake.play()

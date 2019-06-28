@@ -24,10 +24,6 @@ class game:
         while True:
             self.reward = np.zeros(self.solutionsPerPopulation) #reset reward every population
             for n in range(self.solutionsPerPopulation):
-                '''self.snake_head = [2 * self.width/25, 12 * self.height/25]    
-                self.snake_position = [[2 * self.width/25, 12 * self.height/25],[self.width/25,12 * self.height/25],[0, 12 * self.height/25]]  
-                self.apple_position = [np.random.randint(15), np.random.randint(25)]'''
-
                 self.snake_head = [2, self.width//2]    
                 self.snake_position = [[2, self.width//2],[1, self.width//2],[0, self.width//2]]  
                 self.apple_position = [np.random.randint(5,self.width), np.random.randint(self.width)] #make sure apple doesnt spawn on snake
@@ -115,7 +111,7 @@ class game:
         self.input[0] = self.input[0] / self.width
 
         self.hiddenLayer = self.relu(np.matmul(self.weights[solution, :len(self.hiddenLayer) * len(self.input)].reshape([len(self.hiddenLayer), len(self.input)]), self.input)) # matrix multilication of weights matrix (a x number of weights) by input list ax1 matrix
-        self.output = self.relu(np.matmul(self.weights[solution][len(self.hiddenLayer) * len(self.input):].reshape([len(self.output), len(self.hiddenLayer)]), self.hiddenLayer)) 
+        self.output = np.matmul(self.weights[solution][len(self.hiddenLayer) * len(self.input):].reshape([len(self.output), len(self.hiddenLayer)]), self.hiddenLayer)
 
         movements = {0: [1, 0], 1: [-1,0], 2: [0, -1], 3: [0, 1]}
         self.moving = movements[np.argmax(self.output)] #fix so that it checks for duplicate value
