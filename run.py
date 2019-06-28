@@ -1,13 +1,13 @@
 import pygame
 from pygame.locals import *
 import numpy as np
-import NeuralNet
+import sys
 
 class game:
-    def __init__(self, w):
+    def __init__(self, width, file):
         self.width = 50
         self.display = pygame.Surface((self.width, self.width))
-        self.outputDisplay = pygame.display.set_mode((w, w))
+        self.outputDisplay = pygame.display.set_mode((int(width), int(width)))
         
         self.input = np.zeros(6) #6 element list input layer, 1-4 is distance to collision (right,left,up,down), 4-5 is distance to apple(x,y)
         self.hiddenLayer = np.zeros(5) #5 element list hidden Layer
@@ -15,8 +15,10 @@ class game:
 
         self.reward = 0 #how many apples eaten and steps taken towards apple,
 
-        #self.weights = np.load("FinalSolution.npy")
-        self.weights = np.load("bestSolution.npy")
+        if int(file):
+            self.weights = np.load("FinalSolution.npy")
+        else:
+            self.weights = np.load("bestSolution.npy")
 
         self.snake_head = [2, self.width//2]    
         self.snake_position = [[2, self.width//2],[1, self.width//2],[0, self.width//2]]  
@@ -94,13 +96,6 @@ class game:
         self.hiddenLayer = self.leaky_relu(np.matmul(self.weights[:len(self.hiddenLayer) * len(self.input)].reshape([len(self.hiddenLayer), len(self.input)]), self.input)) # matrix multilication of weights matrix (a x number of weights) by input list ax1 matrix
         self.output = np.tanh(np.matmul(self.weights[len(self.hiddenLayer) * len(self.input):].reshape([len(self.output), len(self.hiddenLayer)]), self.hiddenLayer)) 
 
-        '''movements = {0: [[1],[0]], 1: [[-1],[0]], 2: [[0],[-1]], 3: [[0],[1]]}
-        self.moving = movements[np.argmax(self.output)] #fix so that it checks for duplicate value
-        
-        m = self.move * self.moving
-        self.snake_head[0] += m[0][0]
-        self.snake_head[1] += m[1][0]
-'''
         movements = {0: [1, 0], 1: [-1,0], 2: [0, -1], 3: [0, 1]}
         self.moving = movements[np.argmax(self.output)] #fix so that it checks for duplicate value
         
@@ -118,5 +113,5 @@ class game:
     def leaky_relu(self, x):
         return np.maximum(0.1 * x, x)
 
-snake = game(500) #500x500px display
+snake = game(sys.argv[1], sys.argv[2]) #500x500px display
 snake.play()
