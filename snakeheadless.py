@@ -1,7 +1,7 @@
 import numpy as np
 
 class game:
-    def __init__(self, sols, parents,f, c):
+    def __init__(self, sols, parents,f):
         self.width = 50
         
         self.input = np.zeros(6) #6 element list input layer, 1-4 is distance to collision (right,left,up,down), 4-5 is distance to apple(x,y)
@@ -15,10 +15,8 @@ class game:
         self.reward = np.zeros(self.solutionsPerPopulation) #how many apples eaten and steps taken towards apple,
 
         self.numberOfWeights = len(self.hiddenLayer) * (len(self.input) + len(self.output)) # per solution
-        if c:
-            self.weights = np.load("toContinue.npy")
-        else:
-            self.weights = np.random.uniform(-1,1, [self.solutionsPerPopulation, self.numberOfWeights])
+
+        self.weights = np.random.uniform(-1,1, [self.solutionsPerPopulation, self.numberOfWeights])
         
         self.desiredFitness = f
 
@@ -116,16 +114,9 @@ class game:
         self.input[1] = self.input[1] / self.width
         self.input[0] = self.input[0] / self.width
 
-        self.hiddenLayer = self.leaky_relu(np.matmul(self.weights[solution, :len(self.hiddenLayer) * len(self.input)].reshape([len(self.hiddenLayer), len(self.input)]), self.input)) # matrix multilication of weights matrix (a x number of weights) by input list ax1 matrix
-        self.output = np.tanh(np.matmul(self.weights[solution][len(self.hiddenLayer) * len(self.input):].reshape([len(self.output), len(self.hiddenLayer)]), self.hiddenLayer)) 
+        self.hiddenLayer = self.relu(np.matmul(self.weights[solution, :len(self.hiddenLayer) * len(self.input)].reshape([len(self.hiddenLayer), len(self.input)]), self.input)) # matrix multilication of weights matrix (a x number of weights) by input list ax1 matrix
+        self.output = self.relu(np.matmul(self.weights[solution][len(self.hiddenLayer) * len(self.input):].reshape([len(self.output), len(self.hiddenLayer)]), self.hiddenLayer)) 
 
-        '''movements = {0: [[1],[0]], 1: [[-1],[0]], 2: [[0],[-1]], 3: [[0],[1]]}
-        self.moving = movements[np.argmax(self.output)] #fix so that it checks for duplicate value
-        
-        m = self.move * self.moving
-        self.snake_head[0] += m[0][0]
-        self.snake_head[1] += m[1][0]
-'''
         movements = {0: [1, 0], 1: [-1,0], 2: [0, -1], 3: [0, 1]}
         self.moving = movements[np.argmax(self.output)] #fix so that it checks for duplicate value
         
@@ -140,15 +131,15 @@ class game:
         else:
             self.reward[solution] -= 3
 
-    def leaky_relu(self, x):
-        return np.maximum(0.1 * x, x)
+    def relu(self, x):
+        return x * (x > 0)
+
+    def sigmoid(self, x):                                        
+        return 1 / (1 + np.exp(-x))
 
     def save(self):
         np.save("FinalSolution.npy", self.weights[np.argpartition(self.reward, -1)[-1:][0]])
-        #np.save("toContinue.npy", self.weights)
         print("Finished!\n", self.weights[np.argpartition(self.reward, -1)[-1:][0]])
 
-
-snake = game(500, 100, 20000, 0)
-
+snake = game(500, 100, 20000)
 snake.play()
